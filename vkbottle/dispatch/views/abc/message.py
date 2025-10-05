@@ -72,7 +72,13 @@ class ABCMessageView(ABCDispenseView[T_contra, F_contra], ABC, Generic[T_contra,
             elif isinstance(result, dict):
                 context_variables.update(result)
 
-            handler_response = await handler.handle(message, **context_variables)
+            try:
+                handler_response = await handler.handle(message, **context_variables)
+            except Exception as e:
+                if getattr(self, "error_handler", None) is not None:
+                    await self.error_handler.handle(e, message, **context_variables)  # type: ignore[attr-defined]
+                    continue
+                raise
             handle_responses.append(handler_response)
             handlers.append(handler)
 

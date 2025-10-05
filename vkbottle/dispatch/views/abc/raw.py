@@ -75,10 +75,16 @@ class ABCRawEventView(ABCView[Event_contra], Generic[Event_contra, HandlerBaseme
             elif isinstance(result, dict):
                 context_variables.update(result)
 
-            handler_response = await handler_basement.handler.handle(
-                event_model,
-                **context_variables,
-            )
+            try:
+                handler_response = await handler_basement.handler.handle(
+                    event_model,
+                    **context_variables,
+                )
+            except Exception as e:
+                if getattr(self, "error_handler", None) is not None:
+                    await self.error_handler.handle(e, event_model, **context_variables)  # type: ignore[attr-defined]
+                    continue
+                raise
             handle_responses.append(handler_response)
             handlers.append(handler_basement.handler)
 
